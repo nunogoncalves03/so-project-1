@@ -1,12 +1,14 @@
 #include "operations.h"
+#include "betterassert.h"
 #include "config.h"
 #include "state.h"
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "betterassert.h"
+#include <sys/stat.h>
+#include <unistd.h>
 
 tfs_params tfs_default_params() {
     tfs_params params = {
@@ -242,10 +244,46 @@ int tfs_unlink(char const *target) {
 }
 
 int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
-    (void)source_path;
-    (void)dest_path;
-    // ^ this is a trick to keep the compiler from complaining about unused
-    // variables. TODO: remove
+    struct stat stat_buffer;
 
-    PANIC("TODO: tfs_copy_from_external_fs");
+    if (stat(source_path, &stat_buffer) == -1 ||
+        stat_buffer.st_size > tfs_default_params().block_size) {
+        // pathname does not exist or file size exceeds block size
+        return -1;
+    }
+
+    size_t source_size = (size_t)stat_buffer.st_size;
+    inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
+    int fhandle;
+
+    if (tfs_lookup(dest_path, root_dir_inode) == -1) {
+        // if file doesn't exist, create it
+        fhandle = tfs_open(dest_path, TFS_O_CREAT);
+    } else {
+        // if file exists, delete current content
+        fhandle = tfs_open(dest_path, TFS_O_TRUNC);
+    }
+
+    if (fhandle == -1)
+        return -1;
+
+    // opens source file
+    int fd = open(source_path, O_RDONLY);
+    if (fd == -1)
+        return -1;
+
+    // reads source file content to a buffer
+    char buffer[source_size];
+    if (read(fd, buffer, source_size) < source_size)
+        return -1;
+    close(fd);
+
+    // writes the buffer content in destination file
+    if (tfs_write(fhandle, buffer, source_size) == -1) {
+        tfs_close(fhandle);
+        return -1;
+    }
+    tfs_close(fhandle);
+
+    return 0;
 }
