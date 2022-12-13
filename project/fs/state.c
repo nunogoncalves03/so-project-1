@@ -222,6 +222,7 @@ int inode_create(inode_type i_type) {
 
         inode_table[inumber].i_size = BLOCK_SIZE;
         inode_table[inumber].i_data_block = b;
+        inode_table[inumber].hard_links = 1;
 
         dir_entry_t *dir_entry = (dir_entry_t *)data_block_get(b);
         ALWAYS_ASSERT(dir_entry != NULL,
@@ -232,9 +233,11 @@ int inode_create(inode_type i_type) {
         }
     } break;
     case T_FILE:
+    case T_SYM_LINK:
         // In case of a new file, simply sets its size to 0
         inode_table[inumber].i_size = 0;
         inode_table[inumber].i_data_block = -1;
+        inode_table[inumber].hard_links = 1;
         break;
     default:
         PANIC("inode_create: unknown file type");
