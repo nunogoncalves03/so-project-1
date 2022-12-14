@@ -35,15 +35,17 @@ int main() {
     assert(r == strlen(str_ext_1));
     assert(!memcmp(buffer, str_ext_1, strlen(str_ext_1)));
 
+    tfs_close(f);
+
     f2 = tfs_copy_from_external_fs(path_src_2, path_copied_file);
     assert(f2 != -1);
 
     memset(buffer, 0, sizeof(buffer));
     
+    f = tfs_open(path_copied_file, TFS_O_CREAT);
+    assert(f != -1);
+
     r = tfs_read(f, buffer, sizeof(buffer) - 1);
-    printf("%ld\n", r);
-    printf("SSS\n");
-    printf("%s\n", buffer);
     assert(r == strlen(str_ext_2));
     assert(!memcmp(buffer, str_ext_2, strlen(str_ext_2)));
 

@@ -155,6 +155,10 @@ int tfs_sym_link(char const *target, char const *link_name) {
         return -1; // target doesn't exist
     }
 
+    if (tfs_lookup(link_name, root_dir_inode) != -1) {
+        return -1; // there's already a file in root with link_name
+    }
+
     int link_inumber;
     if ((link_inumber = inode_create(T_SYM_LINK)) == -1)
         return -1; // no free slots in inode table for the link inode
@@ -194,7 +198,11 @@ int tfs_link(char const *target, char const *link_name) {
 
     int inumber;
     if ((inumber = tfs_lookup(target, root_dir_inode)) == -1) {
-        return -1; // file doesn't exist
+        return -1; // target doesn't exist
+    }
+
+    if (tfs_lookup(link_name, root_dir_inode) != -1) {
+        return -1; // there's already a file in root with link_name
     }
 
     inode_t *target_inode = inode_get(inumber);
