@@ -35,6 +35,8 @@ int main() {
 
     tfs_close(f);
 
+    assert(tfs_destroy() == 0);
+
     printf("Successful test.\n");
 
     return 0;

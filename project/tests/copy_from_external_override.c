@@ -49,6 +49,8 @@ int main() {
     assert(r == strlen(str_ext_2));
     assert(!memcmp(buffer, str_ext_2, strlen(str_ext_2)));
 
+    assert(tfs_destroy() == 0);
+
     printf("Successful test.\n");
 
     return 0;

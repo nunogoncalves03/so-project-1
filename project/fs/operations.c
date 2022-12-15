@@ -101,11 +101,6 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
             char buffer[inode->i_size];
             memcpy(buffer, data, inode->i_size);
 
-            // open the target with the requested mode, unless the mode was
-            // TFS_O_CREAT, because if the link is broken, we don't want to
-            // create the target file
-            if (mode == TFS_O_CREAT)
-                return tfs_open(buffer, 0);
             return tfs_open(buffer, mode);
         }
 
@@ -355,7 +350,7 @@ int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
     struct stat stat_buffer;
 
     if (stat(source_path, &stat_buffer) == -1 ||
-        stat_buffer.st_size > tfs_default_params().block_size) {
+        stat_buffer.st_size > state_block_size()) {
         // pathname does not exist or file size exceeds block size
         return -1;
     }

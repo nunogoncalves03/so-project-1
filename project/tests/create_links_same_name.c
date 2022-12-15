@@ -21,6 +21,8 @@ int main() {
     f = tfs_sym_link(path_copied_file, path_copied_file);
     assert(f == -1);
 
+    assert(tfs_destroy() == 0);
+
     printf("Successful test.\n");
 
     return 0;

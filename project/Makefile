@@ -98,7 +98,7 @@ test: $(TARGET_EXECS)
 	retcode=0; \
 	for f in $^; do \
 		echo "Running test $$f"; \
-		$$f || (retcode=1; echo FAIL); \
+		$$f || (retcode=1; echo '\033[0;31mFAIL\033[0m'); \
 		echo; \
 	done; \
 	exit $$retcode

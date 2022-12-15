@@ -91,5 +91,9 @@ int main() {
     assert(tfs_read(fd, buffer, sizeof(buffer)) == strlen(str_to_write));
     assert(!memcmp(buffer, str_to_write, strlen(str_to_write)));
 
+    assert(tfs_destroy() == 0);
+
     printf("Successful test.\n");
+
+    return 0;
 }
