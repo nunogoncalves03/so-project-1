@@ -9,7 +9,8 @@ int main() {
     char *path_src_1 = "tests/file_to_copy.txt";
     char *str_ext_1 = "BBB!";
     char *path_src_2 = "tests/file_to_copy_over512.txt";
-    char *str_ext_2 = "BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! "
+    char *str_ext_2 =
+        "BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! "
         "BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! "
         "BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! "
         "BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! "
@@ -18,7 +19,6 @@ int main() {
         "BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! BBB! "
         "BBB! BBB! BBB! BBB! BBB! ";
     char buffer[600];
-
 
     assert(tfs_init(NULL) != -1);
 
@@ -41,7 +41,7 @@ int main() {
     assert(f2 != -1);
 
     memset(buffer, 0, sizeof(buffer));
-    
+
     f = tfs_open(path_copied_file, TFS_O_CREAT);
     assert(f != -1);
 

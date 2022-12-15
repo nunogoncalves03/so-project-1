@@ -100,7 +100,13 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
                           "tfs_open: symlink must have a data block");
             char buffer[inode->i_size];
             memcpy(buffer, data, inode->i_size);
-            return tfs_open(buffer, 0);
+
+            // open the target with the requested mode, unless the mode was
+            // TFS_O_CREAT, because if the link is broken, we don't want to
+            // create the target file
+            if (mode == TFS_O_CREAT)
+                return tfs_open(buffer, 0);
+            return tfs_open(buffer, mode);
         }
 
         // Truncate (if requested)
