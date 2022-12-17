@@ -540,6 +540,16 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
     return &open_file_table[fhandle];
 }
 
+int is_file_opened(int inumber) {
+    for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
+        if (open_file_table[i].of_inumber == inumber &&
+            free_open_file_entries[i] == TAKEN)
+            return 0;
+    }
+
+    return -1;
+}
+
 /**
  * Mutex functions
  */

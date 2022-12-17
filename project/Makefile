@@ -43,8 +43,8 @@ else
 endif
 
 # convenience variables for extending compiler options (e.g. to add sanitizers)
-CFLAGS += $(EXTRA_CFLAGS)
-LDFLAGS += $(EXTRA_LDFLAGS)
+CFLAGS += $(EXTRA_CFLAGS) -pthread
+LDFLAGS += $(EXTRA_LDFLAGS) -pthread
 
 # A phony target is one that is not really the name of a file
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html

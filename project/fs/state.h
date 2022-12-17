@@ -67,6 +67,7 @@ void *data_block_get(int block_number);
 int add_to_open_file_table(int inumber, size_t offset);
 void remove_from_open_file_table(int fhandle);
 open_file_entry_t *get_open_file_entry(int fhandle);
+int is_file_opened(int inumber);
 
 void mutex_init(pthread_mutex_t *lock);
 void mutex_lock(pthread_mutex_t *lock);
