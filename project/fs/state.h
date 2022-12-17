@@ -47,6 +47,8 @@ typedef struct {
     pthread_mutex_t lock;
 } open_file_entry_t;
 
+extern open_file_entry_t *open_file_table;
+
 int state_init(tfs_params);
 int state_destroy(void);
 

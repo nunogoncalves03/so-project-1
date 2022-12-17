@@ -490,16 +490,20 @@ void *data_block_get(int block_number) {
  *   - No space in open file table for a new open file.
  */
 int add_to_open_file_table(int inumber, size_t offset) {
+    mutex_lock(&free_open_file_entries_lock);
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
         if (free_open_file_entries[i] == FREE) {
             free_open_file_entries[i] = TAKEN;
+            mutex_lock(&open_file_table[i].lock);
             open_file_table[i].of_inumber = inumber;
             open_file_table[i].of_offset = offset;
-
+            mutex_unlock(&open_file_table[i].lock);
+            mutex_unlock(&free_open_file_entries_lock);
             return i;
         }
     }
 
+    mutex_unlock(&free_open_file_entries_lock);
     return -1;
 }
 
@@ -513,10 +517,12 @@ void remove_from_open_file_table(int fhandle) {
     ALWAYS_ASSERT(valid_file_handle(fhandle),
                   "remove_from_open_file_table: file handle must be valid");
 
+    mutex_lock(&free_open_file_entries_lock);
     ALWAYS_ASSERT(free_open_file_entries[fhandle] == TAKEN,
                   "remove_from_open_file_table: file handle must be taken");
 
     free_open_file_entries[fhandle] = FREE;
+    mutex_unlock(&free_open_file_entries_lock);
 }
 
 /**
@@ -540,13 +546,28 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
     return &open_file_table[fhandle];
 }
 
+/**
+ * Check if a given file is opened.
+ *
+ * Input:
+ *   - inumber: file inumber
+ *
+ * Returns 0 if the given file is opened, -1 otherwise
+ */
 int is_file_opened(int inumber) {
+    mutex_lock(&free_open_file_entries_lock);
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
+        mutex_lock(&open_file_table[i].lock);
         if (open_file_table[i].of_inumber == inumber &&
-            free_open_file_entries[i] == TAKEN)
+            free_open_file_entries[i] == TAKEN) {
+            mutex_unlock(&open_file_table[i].lock);
+            mutex_unlock(&free_open_file_entries_lock);
             return 0;
+        }
+        mutex_unlock(&open_file_table[i].lock);
     }
 
+    mutex_unlock(&free_open_file_entries_lock);
     return -1;
 }
 
