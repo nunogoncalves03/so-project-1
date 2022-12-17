@@ -245,6 +245,8 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         return -1;
     }
 
+    mutex_lock(&file->lock);
+
     //  From the open file table entry, we get the inode
     inode_t *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_write: inode of open file deleted");
@@ -260,6 +262,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             // If empty file, allocate new block
             int bnum = data_block_alloc();
             if (bnum == -1) {
+                mutex_unlock(&file->lock);
                 return -1; // no space
             }
 
@@ -279,6 +282,8 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         }
     }
 
+    mutex_unlock(&file->lock);
+
     return (ssize_t)to_write;
 }
 
@@ -287,6 +292,8 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (file == NULL) {
         return -1;
     }
+
+    mutex_lock(&file->lock);
 
     // From the open file table entry, we get the inode
     inode_t const *inode = inode_get(file->of_inumber);
@@ -307,6 +314,8 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         // The offset associated with the file handle is incremented accordingly
         file->of_offset += to_read;
     }
+
+    mutex_unlock(&file->lock);
 
     return (ssize_t)to_read;
 }

@@ -539,9 +539,13 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
         return NULL;
     }
 
+    mutex_lock(&free_open_file_entries_lock);
+
     if (free_open_file_entries[fhandle] != TAKEN) {
         return NULL;
     }
+
+    mutex_unlock(&free_open_file_entries_lock);
 
     return &open_file_table[fhandle];
 }
