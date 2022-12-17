@@ -1,6 +1,7 @@
 #include "state.h"
 #include "betterassert.h"
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,16 +18,19 @@ static tfs_params fs_params;
 // Inode table
 static inode_t *inode_table;
 static allocation_state_t *freeinode_ts;
+static pthread_mutex_t freeinode_lock;
 
 // Data blocks
 static char *fs_data; // # blocks * block size
 static allocation_state_t *free_blocks;
+static pthread_mutex_t free_blocks_lock;
 
 /*
  * Volatile FS state
  */
 static open_file_entry_t *open_file_table;
 static allocation_state_t *free_open_file_entries;
+static pthread_mutex_t free_open_file_entries_lock;
 
 // Convenience macros
 #define INODE_TABLE_SIZE (fs_params.max_inode_count)
@@ -114,15 +118,20 @@ int state_init(tfs_params params) {
 
     for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
         freeinode_ts[i] = FREE;
+        rwl_init(&inode_table[i].lock);
     }
+    mutex_init(&freeinode_lock);
 
     for (size_t i = 0; i < DATA_BLOCKS; i++) {
         free_blocks[i] = FREE;
     }
+    mutex_init(&free_blocks_lock);
 
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         free_open_file_entries[i] = FREE;
+        mutex_init(&open_file_table[i].lock);
     }
+    mutex_init(&free_open_file_entries_lock);
 
     return 0;
 }
@@ -133,6 +142,18 @@ int state_init(tfs_params params) {
  * Returns 0 if succesful, -1 otherwise.
  */
 int state_destroy(void) {
+    for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
+        rwl_destroy(&inode_table[i].lock);
+    }
+    mutex_destroy(&freeinode_lock);
+
+    mutex_destroy(&free_blocks_lock);
+
+    for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
+        mutex_destroy(&open_file_table[i].lock);
+    }
+    mutex_destroy(&free_open_file_entries_lock);
+
     free(inode_table);
     free(freeinode_ts);
     free(fs_data);
@@ -517,4 +538,48 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
     }
 
     return &open_file_table[fhandle];
+}
+
+/**
+ * Mutex functions
+ */
+void mutex_init(pthread_mutex_t *lock) {
+    ALWAYS_ASSERT(pthread_mutex_init(lock, NULL) == 0, "Failed to init mutex");
+}
+
+void mutex_lock(pthread_mutex_t *lock) {
+    ALWAYS_ASSERT(pthread_mutex_lock(lock) == 0, "Failed to lock mutex");
+}
+
+void mutex_unlock(pthread_mutex_t *lock) {
+    ALWAYS_ASSERT(pthread_mutex_unlock(lock) == 0, "Failed to unlock mutex");
+}
+
+void mutex_destroy(pthread_mutex_t *lock) {
+    ALWAYS_ASSERT(pthread_mutex_destroy(lock) == 0, "Failed to destroy mutex");
+}
+
+/**
+ * RWLOCK functions
+ */
+void rwl_init(pthread_rwlock_t *lock) {
+    ALWAYS_ASSERT(pthread_rwlock_init(lock, NULL) == 0,
+                  "Failed to init rwlock");
+}
+
+void rwl_rdlock(pthread_rwlock_t *lock) {
+    ALWAYS_ASSERT(pthread_rwlock_rdlock(lock) == 0, "Failed to rdlock rwlock");
+}
+
+void rwl_wrlock(pthread_rwlock_t *lock) {
+    ALWAYS_ASSERT(pthread_rwlock_wrlock(lock) == 0, "Failed to wrlock rwlock");
+}
+
+void rwl_unlock(pthread_rwlock_t *lock) {
+    ALWAYS_ASSERT(pthread_rwlock_unlock(lock) == 0, "Failed to unlock rwlock");
+}
+
+void rwl_destroy(pthread_rwlock_t *lock) {
+    ALWAYS_ASSERT(pthread_rwlock_destroy(lock) == 0,
+                  "Failed to destroy rwlock");
 }

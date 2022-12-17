@@ -4,6 +4,7 @@
 #include "config.h"
 #include "operations.h"
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +30,8 @@ typedef struct {
     int i_data_block;
     int hard_links;
 
+    pthread_rwlock_t lock;
+
     // in a more complete FS, more fields could exist here
 } inode_t;
 
@@ -40,6 +43,8 @@ typedef enum { FREE = 0, TAKEN = 1 } allocation_state_t;
 typedef struct {
     int of_inumber;
     size_t of_offset;
+
+    pthread_mutex_t lock;
 } open_file_entry_t;
 
 int state_init(tfs_params);
@@ -62,5 +67,16 @@ void *data_block_get(int block_number);
 int add_to_open_file_table(int inumber, size_t offset);
 void remove_from_open_file_table(int fhandle);
 open_file_entry_t *get_open_file_entry(int fhandle);
+
+void mutex_init(pthread_mutex_t *lock);
+void mutex_lock(pthread_mutex_t *lock);
+void mutex_unlock(pthread_mutex_t *lock);
+void mutex_destroy(pthread_mutex_t *lock);
+
+void rwl_init(pthread_rwlock_t *lock);
+void rwl_rdlock(pthread_rwlock_t *lock);
+void rwl_wrlock(pthread_rwlock_t *lock);
+void rwl_unlock(pthread_rwlock_t *lock);
+void rwl_destroy(pthread_rwlock_t *lock);
 
 #endif // STATE_H

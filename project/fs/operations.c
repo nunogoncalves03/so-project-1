@@ -3,12 +3,19 @@
 #include "config.h"
 #include "state.h"
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+/**
+ * tfs_open lock
+ * TODO
+ */
+static pthread_mutex_t tfs_open_lock;
 
 tfs_params tfs_default_params() {
     tfs_params params = {
@@ -32,6 +39,8 @@ int tfs_init(tfs_params const *params_ptr) {
         return -1;
     }
 
+    mutex_init(&tfs_open_lock);
+
     // create root inode
     int root = inode_create(T_DIRECTORY);
     if (root != ROOT_DIR_INUM) {
@@ -45,6 +54,9 @@ int tfs_destroy() {
     if (state_destroy() != 0) {
         return -1;
     }
+
+    mutex_destroy(&tfs_open_lock);
+
     return 0;
 }
 
@@ -331,7 +343,7 @@ int tfs_unlink(char const *target) {
             inode_delete(target_inumber);
         break;
     case T_DIRECTORY:
-        // TODO: Dont know what to do here
+        // deleting root is not allowed
         return -1;
         break;
     default:
