@@ -230,6 +230,9 @@ int inode_create(inode_type i_type) {
     case T_DIRECTORY: {
         // Initializes directory (filling its block with empty entries, labeled
         // with inumber==-1)
+        // Since there can only be one directory (root) and it is only
+        // initialized once at the creation of the TFS, we don't need to lock
+        // the free blocks table (there won't be multi-threading here)
         int b = data_block_alloc();
         if (b == -1) {
             // ensure fields are initialized
@@ -458,7 +461,9 @@ void data_block_free(int block_number) {
 
     insert_delay(); // simulate storage access delay to free_blocks
 
+    mutex_lock(&free_blocks_lock);
     free_blocks[block_number] = FREE;
+    mutex_unlock(&free_blocks_lock);
 }
 
 /**
@@ -500,6 +505,11 @@ int add_to_open_file_table(int inumber, size_t offset) {
             mutex_unlock(&open_file_table[i].lock);
             mutex_unlock(&free_open_file_entries_lock);
             return i;
+            /* We can unlock the free open file entry table before the return,
+            since the only way this function could be returning something wrong,
+            would be if the user was opening a file and deleting it at the same
+            time, which is impossible, because we need the fhandle to close the
+            file and that's provided by this function */
         }
     }
 
@@ -517,12 +527,12 @@ void remove_from_open_file_table(int fhandle) {
     ALWAYS_ASSERT(valid_file_handle(fhandle),
                   "remove_from_open_file_table: file handle must be valid");
 
-    mutex_lock(&free_open_file_entries_lock);
+    mutex_lock(&open_file_table[fhandle].lock);
     ALWAYS_ASSERT(free_open_file_entries[fhandle] == TAKEN,
                   "remove_from_open_file_table: file handle must be taken");
 
     free_open_file_entries[fhandle] = FREE;
-    mutex_unlock(&free_open_file_entries_lock);
+    mutex_unlock(&open_file_table[fhandle].lock);
 }
 
 /**
@@ -539,13 +549,9 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
         return NULL;
     }
 
-    mutex_lock(&free_open_file_entries_lock);
-
     if (free_open_file_entries[fhandle] != TAKEN) {
         return NULL;
     }
-
-    mutex_unlock(&free_open_file_entries_lock);
 
     return &open_file_table[fhandle];
 }
@@ -559,21 +565,34 @@ open_file_entry_t *get_open_file_entry(int fhandle) {
  * Returns 0 if the given file is opened, -1 otherwise
  */
 int is_file_opened(int inumber) {
-    mutex_lock(&free_open_file_entries_lock);
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         mutex_lock(&open_file_table[i].lock);
         if (open_file_table[i].of_inumber == inumber &&
             free_open_file_entries[i] == TAKEN) {
             mutex_unlock(&open_file_table[i].lock);
-            mutex_unlock(&free_open_file_entries_lock);
             return 0;
         }
         mutex_unlock(&open_file_table[i].lock);
     }
 
-    mutex_unlock(&free_open_file_entries_lock);
     return -1;
 }
+
+/*
+ * Get the free open file entries lock
+ *
+ * Returns the lock
+ */
+pthread_mutex_t *get_free_open_file_entries_lock() {
+    return &free_open_file_entries_lock;
+}
+
+/*
+ * Get the free blocks' lock
+ *
+ * Returns the lock
+ */
+pthread_mutex_t *get_free_blocks_lock() { return &free_blocks_lock; }
 
 /**
  * Mutex functions

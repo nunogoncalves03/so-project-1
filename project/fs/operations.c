@@ -17,6 +17,16 @@
  */
 static pthread_mutex_t tfs_open_lock;
 
+/*
+ * TODO
+ */
+static pthread_mutex_t *free_open_file_entries_lock;
+
+/*
+ * TODO
+ */
+static pthread_mutex_t *free_blocks_lock;
+
 tfs_params tfs_default_params() {
     tfs_params params = {
         .max_inode_count = 64,
@@ -40,6 +50,8 @@ int tfs_init(tfs_params const *params_ptr) {
     }
 
     mutex_init(&tfs_open_lock);
+    free_open_file_entries_lock = get_free_open_file_entries_lock();
+    free_blocks_lock = get_free_blocks_lock();
 
     // create root inode
     int root = inode_create(T_DIRECTORY);
@@ -229,23 +241,29 @@ int tfs_link(char const *target, char const *link_name) {
 }
 
 int tfs_close(int fhandle) {
+    mutex_lock(free_open_file_entries_lock);
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
+        mutex_unlock(free_open_file_entries_lock);
         return -1; // invalid fd
     }
 
     remove_from_open_file_table(fhandle);
+    mutex_unlock(free_open_file_entries_lock);
 
     return 0;
 }
 
 ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
+    mutex_lock(free_open_file_entries_lock);
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
+        mutex_unlock(free_open_file_entries_lock);
         return -1;
     }
 
     mutex_lock(&file->lock);
+    mutex_unlock(free_open_file_entries_lock);
 
     //  From the open file table entry, we get the inode
     inode_t *inode = inode_get(file->of_inumber);
@@ -260,12 +278,14 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     if (to_write > 0) {
         if (inode->i_size == 0) {
             // If empty file, allocate new block
+            mutex_lock(free_blocks_lock);
             int bnum = data_block_alloc();
             if (bnum == -1) {
+                mutex_unlock(free_blocks_lock);
                 mutex_unlock(&file->lock);
                 return -1; // no space
             }
-
+            mutex_unlock(free_blocks_lock);
             inode->i_data_block = bnum;
         }
 
@@ -288,12 +308,15 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
 }
 
 ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
+    mutex_lock(free_open_file_entries_lock);
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
+        mutex_unlock(free_open_file_entries_lock);
         return -1;
     }
 
     mutex_lock(&file->lock);
+    mutex_unlock(free_open_file_entries_lock);
 
     // From the open file table entry, we get the inode
     inode_t const *inode = inode_get(file->of_inumber);
@@ -343,10 +366,14 @@ int tfs_unlink(char const *target) {
         inode_delete(target_inumber);
         break;
     case T_FILE: // hard link
+        mutex_lock(free_open_file_entries_lock);
         // can't delete an opened file
         if (is_file_opened(target_inumber) == 0 &&
-            target_inode->hard_links == 1)
+            target_inode->hard_links == 1) {
+            mutex_unlock(free_open_file_entries_lock);
             return -1;
+        }
+        mutex_unlock(free_open_file_entries_lock);
 
         // remove its entry from the root directory
         if (clear_dir_entry(root_dir_inode, target + 1) == -1)

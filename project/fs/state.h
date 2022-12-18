@@ -69,6 +69,9 @@ void remove_from_open_file_table(int fhandle);
 open_file_entry_t *get_open_file_entry(int fhandle);
 int is_file_opened(int inumber);
 
+pthread_mutex_t *get_free_open_file_entries_lock();
+pthread_mutex_t *get_free_blocks_lock();
+
 void mutex_init(pthread_mutex_t *lock);
 void mutex_lock(pthread_mutex_t *lock);
 void mutex_unlock(pthread_mutex_t *lock);
