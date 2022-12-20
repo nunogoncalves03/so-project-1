@@ -613,18 +613,43 @@ pthread_rwlock_t *get_inode_locks() { return inode_locks; }
 /**
  * Mutex functions
  */
+
+/*
+ * Tries to init the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void mutex_init(pthread_mutex_t *lock) {
     ALWAYS_ASSERT(pthread_mutex_init(lock, NULL) == 0, "Failed to init mutex");
 }
 
+/*
+ * Tries to lock the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void mutex_lock(pthread_mutex_t *lock) {
     ALWAYS_ASSERT(pthread_mutex_lock(lock) == 0, "Failed to lock mutex");
 }
 
+/*
+ * Tries to unlock the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void mutex_unlock(pthread_mutex_t *lock) {
     ALWAYS_ASSERT(pthread_mutex_unlock(lock) == 0, "Failed to unlock mutex");
 }
 
+/*
+ * Tries to destroy the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void mutex_destroy(pthread_mutex_t *lock) {
     ALWAYS_ASSERT(pthread_mutex_destroy(lock) == 0, "Failed to destroy mutex");
 }
@@ -632,23 +657,54 @@ void mutex_destroy(pthread_mutex_t *lock) {
 /**
  * RWLOCK functions
  */
+
+/*
+ * Tries to init the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void rwl_init(pthread_rwlock_t *lock) {
     ALWAYS_ASSERT(pthread_rwlock_init(lock, NULL) == 0,
                   "Failed to init rwlock");
 }
 
+/*
+ * Tries to read lock the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void rwl_rdlock(pthread_rwlock_t *lock) {
     ALWAYS_ASSERT(pthread_rwlock_rdlock(lock) == 0, "Failed to rdlock rwlock");
 }
 
+/*
+ * Tries to write lock the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void rwl_wrlock(pthread_rwlock_t *lock) {
     ALWAYS_ASSERT(pthread_rwlock_wrlock(lock) == 0, "Failed to wrlock rwlock");
 }
 
+/*
+ * Tries to unlock the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void rwl_unlock(pthread_rwlock_t *lock) {
     ALWAYS_ASSERT(pthread_rwlock_unlock(lock) == 0, "Failed to unlock rwlock");
 }
 
+/*
+ * Tries to destroy the lock, exits the program if some error occurs
+ *
+ * Input:
+ *   - lock: a pointer to the lock
+ */
 void rwl_destroy(pthread_rwlock_t *lock) {
     ALWAYS_ASSERT(pthread_rwlock_destroy(lock) == 0,
                   "Failed to destroy rwlock");

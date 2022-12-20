@@ -13,22 +13,32 @@
 
 /**
  * tfs_open lock
- * TODO
+ *
+ * Description - The purpose of this lock is to not allow 2 files with the same
+ * name to be created
  */
 static pthread_mutex_t tfs_open_lock;
 
 /*
- * TODO
+ * free_open_file_entries_lock
+ *
+ * Description - A pointer to the free open file entries table lock, located
+ * in state.c
  */
 static pthread_mutex_t *free_open_file_entries_lock;
 
 /*
- * TODO
+ * free_blocks_lock
+ *
+ * Description - A pointer to the free blocks table lock, located
+ * in state.c
  */
 static pthread_mutex_t *free_blocks_lock;
 
 /*
- * TODO
+ * inode_locks
+ *
+ * Description - A pointer to the table of inode locks located in state.c
  */
 static pthread_rwlock_t *inode_locks;
 
@@ -195,7 +205,6 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     // opened but it remains created
 }
 
-// TODO: Unificar processo de criacao com tfs_open
 int tfs_sym_link(char const *target, char const *link_name) {
     rwl_wrlock(&inode_locks[ROOT_DIR_INUM]);
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
@@ -263,7 +272,7 @@ int tfs_link(char const *target, char const *link_name) {
         return -1; // there's already a file in root with link_name
     }
 
-    rwl_wrlock(&inode_locks[inumber]); // ## ordem trocada again
+    rwl_wrlock(&inode_locks[inumber]);
 
     inode_t *target_inode = inode_get(inumber);
     ALWAYS_ASSERT(target_inode != NULL, "tfs_link: target inode doesn't exist");
@@ -308,7 +317,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         return -1;
     }
 
-    rwl_wrlock(&inode_locks[file->of_inumber]); // ##
+    rwl_wrlock(&inode_locks[file->of_inumber]);
     mutex_lock(&file->lock);
     mutex_unlock(free_open_file_entries_lock);
 
@@ -330,8 +339,8 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             if (bnum == -1) {
                 mutex_unlock(free_blocks_lock);
                 mutex_unlock(&file->lock);
-                rwl_unlock(&inode_locks[file->of_inumber]); // ##
-                return -1;                                  // no space
+                rwl_unlock(&inode_locks[file->of_inumber]);
+                return -1; // no space
             }
             mutex_unlock(free_blocks_lock);
             inode->i_data_block = bnum;
@@ -350,7 +359,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         }
     }
     mutex_unlock(&file->lock);
-    rwl_unlock(&inode_locks[file->of_inumber]); // ##
+    rwl_unlock(&inode_locks[file->of_inumber]);
 
     return (ssize_t)to_write;
 }
@@ -363,9 +372,8 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         return -1;
     }
 
-    rwl_rdlock(&inode_locks[file->of_inumber]); // ## se tirar estes 2 ele n se
-                                                // queixa xD
-    mutex_lock(&file->lock); // ## se aquela ordem está mal, pq aqui n acusa?
+    rwl_rdlock(&inode_locks[file->of_inumber]);
+    mutex_lock(&file->lock);
     mutex_unlock(free_open_file_entries_lock);
 
     // From the open file table entry, we get the inode
@@ -388,8 +396,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         file->of_offset += to_read;
     }
     mutex_unlock(&file->lock);
-    rwl_unlock(&inode_locks[file->of_inumber]); // ## se tirar estes 2 ele n se
-                                                // queixa xD
+    rwl_unlock(&inode_locks[file->of_inumber]);
 
     return (ssize_t)to_read;
 }
@@ -402,13 +409,12 @@ int tfs_unlink(char const *target) {
 
     int target_inumber;
     if ((target_inumber = tfs_lookup(target, root_dir_inode)) == -1) {
-        rwl_unlock(&inode_locks[ROOT_DIR_INUM]); // ## faltava isto
-        return -1;                               // target doesn't exist
+        rwl_unlock(&inode_locks[ROOT_DIR_INUM]);
+        return -1; // target doesn't exist
     }
 
     mutex_lock(free_open_file_entries_lock);
 
-    // ## na outra ordem os testes dao todos certo, apenas dá warning
     rwl_wrlock(&inode_locks[target_inumber]);
 
     inode_t *target_inode = inode_get(target_inumber);
@@ -426,7 +432,7 @@ int tfs_unlink(char const *target) {
         }
 
         rwl_unlock(&inode_locks[target_inumber]);
-        mutex_unlock(free_open_file_entries_lock); // ######
+        mutex_unlock(free_open_file_entries_lock);
         rwl_unlock(&inode_locks[ROOT_DIR_INUM]);
         // free the inode and the associated block
         inode_delete(target_inumber);
@@ -435,9 +441,9 @@ int tfs_unlink(char const *target) {
         // can't delete an opened file
         if (is_file_opened(target_inumber) == 0 &&
             target_inode->hard_links == 1) {
-            rwl_unlock(&inode_locks[target_inumber]); // ## faltava
+            rwl_unlock(&inode_locks[target_inumber]);
             mutex_unlock(free_open_file_entries_lock);
-            rwl_unlock(&inode_locks[ROOT_DIR_INUM]); // ## faltava
+            rwl_unlock(&inode_locks[ROOT_DIR_INUM]);
             return -1;
         }
 
@@ -455,7 +461,7 @@ int tfs_unlink(char const *target) {
             mutex_unlock(free_open_file_entries_lock);
             rwl_unlock(&inode_locks[ROOT_DIR_INUM]);
             inode_delete(target_inumber);
-        } else { // ## só dávamos unlock se entrasse no if
+        } else {
             rwl_unlock(&inode_locks[target_inumber]);
             mutex_unlock(free_open_file_entries_lock);
             rwl_unlock(&inode_locks[ROOT_DIR_INUM]);
