@@ -30,8 +30,6 @@ typedef struct {
     int i_data_block;
     int hard_links;
 
-    pthread_rwlock_t lock;
-
     // in a more complete FS, more fields could exist here
 } inode_t;
 
@@ -71,6 +69,7 @@ int is_file_opened(int inumber);
 
 pthread_mutex_t *get_free_open_file_entries_lock();
 pthread_mutex_t *get_free_blocks_lock();
+pthread_rwlock_t *get_inode_locks();
 
 void mutex_init(pthread_mutex_t *lock);
 void mutex_lock(pthread_mutex_t *lock);
