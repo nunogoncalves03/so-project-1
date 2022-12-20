@@ -12,6 +12,7 @@ int main() {
 
     int f;
 
+    // can't copy bigger file than supported
     f = tfs_copy_from_external_fs(path_src, path_copied_file);
     assert(f == -1);
 

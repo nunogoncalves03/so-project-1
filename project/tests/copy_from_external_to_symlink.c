@@ -26,7 +26,7 @@ int main() {
     f = tfs_copy_from_external_fs(path_src_2, link_path);
     assert(f != -1);
 
-    f = tfs_open(link_path, 0);
+    f = tfs_open(path_copied_file, 0);
     assert(f != -1);
 
     r = tfs_read(f, buffer, sizeof(buffer) - 1);

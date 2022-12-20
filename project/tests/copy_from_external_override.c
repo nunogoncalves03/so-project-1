@@ -37,6 +37,7 @@ int main() {
 
     tfs_close(f);
 
+    // override the previously created file (by first truncating its content)
     f2 = tfs_copy_from_external_fs(path_src_2, path_copied_file);
     assert(f2 != -1);
 

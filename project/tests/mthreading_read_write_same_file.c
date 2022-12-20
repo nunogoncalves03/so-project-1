@@ -41,9 +41,9 @@ void *_read(void *arg) {
     return NULL;
 }
 
-/* This test tries to write and then read different number of bytes at the same
-time in multiple threads. We need to make sure that, at the end, the number of
-chars written/read in total are the expected (1024) */
+/* This test tries to write and then read a different number of bytes at the
+same time in multiple threads. We need to make sure that, at the end, the number
+of chars written/read in total are the expected (1024) */
 int main() {
 
     pthread_t tid[N_THREADS];

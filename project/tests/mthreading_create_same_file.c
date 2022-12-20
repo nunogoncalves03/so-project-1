@@ -18,12 +18,12 @@ void *create_file(void *arg) {
     return f;
 }
 
-/* This test tries to create and open the same file as many times the tfs will
-support. As there can not be duplicates, the file will be only created once and
-all the other threads will only open it. To make sure this is happening, after
-creating/opening them all, we iterate over all the opened files and write 1 char
-to each one, and at the end, read from the file to confirm that all threads
-opened the same file and appended 1 char each.  */
+/* This test tries to create and open the same file as many times as the tfs
+will support. As there can not be duplicates, the file will be only created once
+and all the other threads will only open it. To make sure this is happening,
+after creating/opening them all, we iterate over all the opened files and write
+1 char to each one, and at the end, read from the file to confirm that all
+threads opened the same file and appended 1 char each.  */
 int main() {
 
     pthread_t tid[N_THREADS];
